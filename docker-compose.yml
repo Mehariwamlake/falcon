@@ -8,4 +8,16 @@ services:
     ports:
       - "8010:8010"
     environment:
-      - PYTHONUNBUFFERED=1
+      PYTHONUNBUFFERED: "1"
+
+  python-runtime:
+    image: fossunited/falcon-python:3.9
+
+  golang-runtime:
+    image: fossunited/falcon-golang
+
+  rust-runtime:
+    image: fossunited/falcon-rust
+
+  js-runtime:
+    image: frappedevs/falcon-javascript
