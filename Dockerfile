@@ -18,7 +18,7 @@ RUN pip install --upgrade pip
 
 # core dependencies
 RUN pip install -r dev-requirements.txt
-RUN make build
+RUN make setup
 # IMPORTANT runtime fixes
 RUN pip install \
     "uvicorn[standard]" \
