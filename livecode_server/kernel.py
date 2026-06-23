@@ -13,54 +13,54 @@ class Kernel:
         self.runtime = runtime
 
     async def execute(self, msg: ExecMessage):
-    kspec = config.get_runtime(self.runtime)
-    code_filename = msg.code_filename or kspec['code_filename']
+        kspec = config.get_runtime(self.runtime)
+        code_filename = msg.code_filename or kspec['code_filename']
 
-    # ✅ FIX: stable workspace instead of temp dir
-    base_dir = Path("/app/workspace")
-    base_dir.mkdir(parents=True, exist_ok=True)
+        # ✅ FIX: stable workspace instead of temp dir
+        base_dir = Path("/app/workspace")
+        base_dir.mkdir(parents=True, exist_ok=True)
 
-    job_id = getattr(msg, "id", None) or "default"
-    root = base_dir / f"job-{job_id}"
-    root.mkdir(parents=True, exist_ok=True)
+        job_id = getattr(msg, "id", None) or "default"
+        root = base_dir / f"job-{job_id}"
+        root.mkdir(parents=True, exist_ok=True)
 
-    self.root = str(root)
+        self.root = str(root)
 
-    if msg.code:
-        self.save_file(root, code_filename, msg.code)
+        if msg.code:
+            self.save_file(root, code_filename, msg.code)
 
-    for f in msg.files:
-        self.save_file(root, f['filename'], f['contents'])
+        for f in msg.files:
+            self.save_file(root, f['filename'], f['contents'])
 
-    container = await self.start_container(
-        image=kspec['image'],
-        command=msg.command or kspec['command'],
-        root=str(root),
-        env=msg.env or {}
-    )
+        container = await self.start_container(
+            image=kspec['image'],
+            command=msg.command or kspec['command'],
+            root=str(root),
+            env=msg.env or {}
+        )
 
-    try:
-        async for line in self.read_docker_log_lines(container):
-            if line.startswith("--MSG--"):
-                json_message = line[len("--MSG--"):].strip()
-                msg_data = json.loads(json_message)
+        try:
+            async for line in self.read_docker_log_lines(container):
+                if line.startswith("--MSG--"):
+                    json_message = line[len("--MSG--"):].strip()
+                    msg_data = json.loads(json_message)
 
-                if "msgtype" not in msg_data:
-                    continue
+                    if "msgtype" not in msg_data:
+                        continue
 
-                yield msg_data
-            else:
-                yield {
-                    "msgtype": "write",
-                    "file": "stdout",
-                    "data": line
-                }
+                    yield msg_data
+                else:
+                    yield {
+                        "msgtype": "write",
+                        "file": "stdout",
+                        "data": line
+                    }
 
-    finally:
-        status = await container.wait()
-        yield {"msgtype": "exitstatus", "exitstatus": status["StatusCode"]}
-        await container.delete()
-        
+        finally:
+            status = await container.wait()
+            yield {"msgtype": "exitstatus", "exitstatus": status["StatusCode"]}
+            await container.delete()
+            
     async def read_docker_log_lines(self, container, max_line_length=1000000):
         """Reads the docker log line by line.
 
