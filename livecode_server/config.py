@@ -12,32 +12,32 @@ DEFAULT_CONFIG = {
     "runtimes": {
         "python": {
             "image": "fossunited/falcon-python:3.9",
-            "command": [],
+            "command": ["python", "/app/main.py"],
             "code_filename": "main.py"
         },
         "javascript": {
             "image": "frappedevs/falcon-javascript:latest",
-            "command": [],
+            "command": ["node", "/app/main.js"],
             "code_filename": "main.js"
         },
         "rust": {
             "image": "fossunited/falcon-rust",
-            "command": [],
+            "command": ["/app/main"],
             "code_filename": "main.rs"
         },
         "golang": {
             "image": "fossunited/falcon-golang",
-            "command": [],
+            "command": ["/app/main"],
             "code_filename": "main.go"
         },
         "c": {
             "image": "fossunited/falcon-c",
-            "command": [],
+            "command": ["/app/main"],
             "code_filename": "main.c"
         },
         "cpp": {
             "image": "fossunited/falcon-cpp",
-            "command": [],
+            "command": ["/app/main"],
             "code_filename": "main.cpp"
         },
         "joy": {
