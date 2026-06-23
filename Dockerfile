@@ -11,6 +11,7 @@ RUN apt-get update && apt-get install -y \
 
 # copy project
 COPY . .
+RUN make build
 
 # upgrade pip
 RUN pip install --upgrade pip
