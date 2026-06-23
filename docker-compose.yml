@@ -6,6 +6,6 @@ services:
     container_name: falcon-livecode
     restart: always
     ports:
-      - "8000:8000"
+      - "8010:8010"
     environment:
       - PYTHONUNBUFFERED=1
