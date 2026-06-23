@@ -21,7 +21,10 @@ from . import config
 templates = Jinja2Templates(directory=templates_dir)
 
 async def home(request):
-    return templates.TemplateResponse('index.html', {'request': request})
+    return templates.TemplateResponse(
+        "index.html",
+        {"request": request}
+)
 
 class LiveCode(WebSocketEndpoint):
     """The websocket endpoint for livecode.
