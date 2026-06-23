@@ -3,6 +3,7 @@
 import aiodocker
 from pathlib import Path
 import tempfile
+import os
 import json
 from .msgtypes import ExecMessage
 from . import config
@@ -12,42 +13,54 @@ class Kernel:
         self.runtime = runtime
 
     async def execute(self, msg: ExecMessage):
-        """Executes the code and yields the messages whenever something is printed by that code.
-        """
-        kspec = config.get_runtime(self.runtime)
-        code_filename = msg.code_filename or kspec['code_filename']
-        with tempfile.TemporaryDirectory() as root:
-            self.root = root
-            if msg.code:
-                self.save_file(root, code_filename, msg.code)
+    kspec = config.get_runtime(self.runtime)
+    code_filename = msg.code_filename or kspec['code_filename']
 
-            for f in msg.files:
-                self.save_file(root, f['filename'], f['contents'])
+    # ✅ FIX: stable workspace instead of temp dir
+    base_dir = Path("/app/workspace")
+    base_dir.mkdir(parents=True, exist_ok=True)
 
-            container = await self.start_container(
-                image=kspec['image'],
-                command=msg.command or kspec['command'],
-                root=root,
-                env=msg.env)
+    job_id = getattr(msg, "id", None) or "default"
+    root = base_dir / f"job-{job_id}"
+    root.mkdir(parents=True, exist_ok=True)
 
-            # TODO: read stdout and stderr seperately
-            try:
-                async for line in self.read_docker_log_lines(container):
-                    if line.startswith("--MSG--"):
-                        json_message = line[len("--MSG--"):].strip()
-                        msg = json.loads(json_message)
-                        # ignore bad cases
-                        if "msgtype" not in msg:
-                            # TODO: print a warning message
-                            continue
-                    else:
-                        msg = dict(msgtype="write", file="stdout", data=line)
-                    yield msg
-            finally:
-                status = await container.wait()
-                yield {"msgtype": "exitstatus", "exitstatus": status['StatusCode']}
-                await container.delete()
+    self.root = str(root)
 
+    if msg.code:
+        self.save_file(root, code_filename, msg.code)
+
+    for f in msg.files:
+        self.save_file(root, f['filename'], f['contents'])
+
+    container = await self.start_container(
+        image=kspec['image'],
+        command=msg.command or kspec['command'],
+        root=str(root),
+        env=msg.env or {}
+    )
+
+    try:
+        async for line in self.read_docker_log_lines(container):
+            if line.startswith("--MSG--"):
+                json_message = line[len("--MSG--"):].strip()
+                msg_data = json.loads(json_message)
+
+                if "msgtype" not in msg_data:
+                    continue
+
+                yield msg_data
+            else:
+                yield {
+                    "msgtype": "write",
+                    "file": "stdout",
+                    "data": line
+                }
+
+    finally:
+        status = await container.wait()
+        yield {"msgtype": "exitstatus", "exitstatus": status["StatusCode"]}
+        await container.delete()
+        
     async def read_docker_log_lines(self, container, max_line_length=1000000):
         """Reads the docker log line by line.
 
@@ -83,7 +96,11 @@ class Kernel:
         Path(root, filename).write_text(contents)
 
     async def start_container(self, image, command, root, env):
-        docker = aiodocker.Docker()
+        
+
+        docker = aiodocker.Docker(
+            url=os.getenv("DOCKER_HOST", "unix:///var/run/docker.sock")
+        )
         print('== starting a container ==')
         # command = ["timeout", "10"] + command
         env_entries = [f'{k}={v}' for k, v in env.items()]
@@ -93,7 +110,7 @@ class Kernel:
             'Env': ["PYTHONUNBUFFERED=1", "PYTHONDONTWRITEBYTECODE=1"] + env_entries,
             'HostConfig': {
                 'Binds': [
-                    root + ":/app"
+                    f"{root}:/app"
                 ],
                 "Memory": 100*1024*1024,
                 "CPUQuota": 50000,
