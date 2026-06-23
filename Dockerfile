@@ -11,14 +11,14 @@ RUN apt-get update && apt-get install -y \
 
 # copy project
 COPY . .
-RUN make build
+
 
 # upgrade pip
 RUN pip install --upgrade pip
 
 # core dependencies
 RUN pip install -r dev-requirements.txt
-
+RUN make build
 # IMPORTANT runtime fixes
 RUN pip install \
     "uvicorn[standard]" \
