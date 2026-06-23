@@ -1,6 +1,6 @@
 FROM python:3.11-slim
 
-WORKDIR /app
+WORKDIR /
 
 # system dependencies (IMPORTANT for docker-in-docker + builds)
 RUN apt-get update && apt-get install -y \
