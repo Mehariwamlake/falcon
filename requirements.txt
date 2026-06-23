@@ -1,4 +1,3 @@
-starlette
 aiofiles
 uvicorn[standard]
 Jinja2
@@ -6,3 +5,6 @@ aiodocker
 flake8
 requests
 python-multipart
+
+fastapi==0.95.2
+starlette==0.27.0
