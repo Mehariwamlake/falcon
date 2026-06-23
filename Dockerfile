@@ -13,6 +13,7 @@ COPY . .
 RUN pip install --upgrade pip
 RUN pip install -r dev-requirements.txt
 RUN pip install "uvicorn[standard]"
+RUN pip install jinja2
 
 EXPOSE 8000
 
