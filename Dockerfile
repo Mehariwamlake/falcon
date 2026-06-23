@@ -2,18 +2,33 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# system deps
+# system dependencies (IMPORTANT for docker-in-docker + builds)
 RUN apt-get update && apt-get install -y \
     git gcc curl \
+    docker.io \
+    build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-# install dependencies
+# copy project
 COPY . .
 
+# upgrade pip
 RUN pip install --upgrade pip
+
+# core dependencies
 RUN pip install -r dev-requirements.txt
-RUN pip install "uvicorn[standard]"
-RUN pip install jinja2
+
+# IMPORTANT runtime fixes
+RUN pip install \
+    "uvicorn[standard]" \
+    jinja2 \
+    docker \
+    aiohttp \
+    websockets \
+    starlette
+
+# environment safety (prevents template issues)
+ENV PYTHONUNBUFFERED=1
 
 EXPOSE 8000
 
