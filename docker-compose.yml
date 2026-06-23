@@ -5,10 +5,16 @@ services:
     build: .
     container_name: falcon-livecode
     restart: always
+
     ports:
       - "8010:8010"
+
     environment:
       PYTHONUNBUFFERED: "1"
+      DOCKER_HOST: unix:///var/run/docker.sock
+
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
 
   python-runtime:
     image: fossunited/falcon-python:3.9
