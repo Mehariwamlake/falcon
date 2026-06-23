@@ -27,7 +27,9 @@ RUN pip install \
     aiohttp \
     websockets \
     jinja2 \
-    starlette
+    starlette \
+    starlette==0.27.0 \
+    jinja2==3.1.2
 
 # Copy application
 COPY . .
