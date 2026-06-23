@@ -1,36 +1,40 @@
 FROM python:3.11-slim
 
-WORKDIR /
+WORKDIR /app
 
-# system dependencies (IMPORTANT for docker-in-docker + builds)
+# Install system packages
 RUN apt-get update && apt-get install -y \
-    git gcc curl \
-    docker.io \
+    git \
+    gcc \
     build-essential \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
-# copy project
-COPY . .
+# Copy dependency files first (better layer caching)
+COPY dev-requirements.txt .
+COPY requirements.txt* ./
 
-
-# upgrade pip
+# Upgrade pip
 RUN pip install --upgrade pip
 
-# core dependencies
+# Install Python dependencies
 RUN pip install -r dev-requirements.txt
-RUN make setup
-# IMPORTANT runtime fixes
+
+# Runtime dependencies
 RUN pip install \
     "uvicorn[standard]" \
-    jinja2 \
     docker \
     aiohttp \
     websockets \
+    jinja2 \
     starlette
 
-# environment safety (prevents template issues)
+# Copy application
+COPY . .
+
 ENV PYTHONUNBUFFERED=1
+ENV LIVECODE_PORT=8010
 
-EXPOSE 8000
+EXPOSE 8010
 
-CMD ["uvicorn", "livecode_server.server:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "livecode_server.server:app", "--host", "0.0.0.0", "--port", "8010"]
