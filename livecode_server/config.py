@@ -11,39 +11,44 @@ import yaml
 DEFAULT_CONFIG = {
     "runtimes": {
         "python": {
-            "image": "python:3.11-slim",
-            "command": ["python", "/app/main.py"],
+            "image": "fossunited/falcon-python:3.9",
+            "command": [],
             "code_filename": "main.py"
         },
-
         "javascript": {
-            "image": "node:20-alpine",
-            "command": ["node", "/app/main.js"],
+            "image": "frappedevs/falcon-javascript:latest",
+            "command": [],
             "code_filename": "main.js"
         },
-
         "rust": {
-            "image": "rust:latest",
-            "command": ["bash", "-c", "rustc /app/main.rs && /app/main"],
+            "image": "fossunited/falcon-rust",
+            "command": [],
             "code_filename": "main.rs"
         },
-
         "golang": {
-            "image": "golang:1.22",
-            "command": ["go", "run", "/app/main.go"],
+            "image": "fossunited/falcon-golang",
+            "command": [],
             "code_filename": "main.go"
         },
-
         "c": {
-            "image": "gcc:latest",
-            "command": ["bash", "-c", "gcc /app/main.c -o /app/main && /app/main"],
+            "image": "fossunited/falcon-c",
+            "command": [],
             "code_filename": "main.c"
         },
-
         "cpp": {
-            "image": "gcc:latest",
-            "command": ["bash", "-c", "g++ /app/main.cpp -o /app/main && /app/main"],
+            "image": "fossunited/falcon-cpp",
+            "command": [],
             "code_filename": "main.cpp"
+        },
+        "joy": {
+            "image": "falcon-joy",
+            "command": ["python", "/opt/start.py"],
+            "code_filename": "main.py"
+        },
+        "python-canvas": {
+            "image": "livecode-python-canvas",
+            "command": ["python", "/opt/startup.py"],
+            "code_filename": "main.py"
         }
     }
 }
