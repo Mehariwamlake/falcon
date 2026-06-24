@@ -9,6 +9,14 @@ from .msgtypes import ExecMessage
 from . import config
 
 
+HOST_WORKSPACE = os.getenv(
+    "HOST_WORKSPACE",
+    "/opt/falcon-workspace"
+)
+
+CONTAINER_WORKSPACE = "/workspace"
+
+
 class Kernel:
     def __init__(self, runtime):
         self.runtime = runtime
@@ -17,46 +25,71 @@ class Kernel:
         kspec = config.get_runtime(self.runtime)
         code_filename = msg.code_filename or kspec["code_filename"]
 
-        # IMPORTANT:
-        # /workspace must be mounted from the HOST into the Falcon container
-        base_dir = Path("/workspace")
-        base_dir.mkdir(parents=True, exist_ok=True)
-
         job_id = getattr(msg, "id", None) or os.urandom(8).hex()
-        root = base_dir / f"job-{job_id}"
-        root.mkdir(parents=True, exist_ok=True)
 
-        self.root = str(root)
+        # Path inside Falcon container
+        container_root = (
+            Path(CONTAINER_WORKSPACE)
+            / f"job-{job_id}"
+        )
+
+        # Corresponding host path
+        host_root = (
+            Path(HOST_WORKSPACE)
+            / f"job-{job_id}"
+        )
+
+        container_root.mkdir(
+            parents=True,
+            exist_ok=True
+        )
+
+        self.root = str(container_root)
 
         if msg.code:
-            self.save_file(root, code_filename, msg.code)
+            self.save_file(
+                container_root,
+                code_filename,
+                msg.code
+            )
 
         for f in msg.files:
-            self.save_file(root, f["filename"], f["contents"])
+            self.save_file(
+                container_root,
+                f["filename"],
+                f["contents"]
+            )
 
         print("===================================")
         print("Runtime:", self.runtime)
-        print("Workspace:", root)
-        print("Files:", os.listdir(root))
+        print("Container Root:", container_root)
+        print("Host Root:", host_root)
+        print("Files:", os.listdir(container_root))
         print("===================================")
 
         container = await self.start_container(
             image=kspec["image"],
             command=msg.command or kspec["command"],
-            root=str(root),
+            host_root=str(host_root),
             env=msg.env or {},
         )
 
         try:
             async for line in self.read_docker_log_lines(container):
                 if line.startswith("--MSG--"):
-                    json_message = line[len("--MSG--"):].strip()
-                    message = json.loads(json_message)
+                    json_message = (
+                        line[len("--MSG--"):].strip()
+                    )
 
-                    if "msgtype" not in message:
-                        continue
+                    try:
+                        data = json.loads(json_message)
 
-                    yield message
+                        if "msgtype" in data:
+                            yield data
+
+                    except Exception:
+                        pass
+
                 else:
                     yield {
                         "msgtype": "write",
@@ -72,7 +105,10 @@ class Kernel:
                 "exitstatus": status["StatusCode"],
             }
 
-            await container.delete(force=True)
+            try:
+                await container.delete(force=True)
+            except Exception:
+                pass
 
     async def read_docker_log_lines(
         self,
@@ -102,16 +138,26 @@ class Kernel:
         if remaining:
             yield remaining
 
-    def save_file(self, root, filename, contents):
+    def save_file(
+        self,
+        root,
+        filename,
+        contents
+    ):
         filepath = Path(root) / filename
-        filepath.parent.mkdir(parents=True, exist_ok=True)
+
+        filepath.parent.mkdir(
+            parents=True,
+            exist_ok=True
+        )
+
         filepath.write_text(contents)
 
     async def start_container(
         self,
         image,
         command,
-        root,
+        host_root,
         env,
     ):
         docker = aiodocker.Docker(
@@ -124,9 +170,12 @@ class Kernel:
         print("== starting container ==")
         print("Image:", image)
         print("Command:", command)
-        print("Mount:", f"{root}:/app")
+        print("Mount:", f"{host_root}:/app")
 
-        env_entries = [f"{k}={v}" for k, v in env.items()]
+        env_entries = [
+            f"{k}={v}"
+            for k, v in env.items()
+        ]
 
         container_config = {
             "Image": image,
@@ -134,11 +183,10 @@ class Kernel:
             "Env": [
                 "PYTHONUNBUFFERED=1",
                 "PYTHONDONTWRITEBYTECODE=1",
-            ]
-            + env_entries,
+            ] + env_entries,
             "HostConfig": {
                 "Binds": [
-                    f"{root}:/app"
+                    f"{host_root}:/app"
                 ],
                 "Memory": 100 * 1024 * 1024,
                 "CPUQuota": 50000,
