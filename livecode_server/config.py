@@ -12,7 +12,7 @@ DEFAULT_CONFIG = {
     "runtimes": {
         "python": {
             "image": "fossunited/falcon-python:3.9",
-            "command": [],
+            "command": ["python", "/app/main.py"],
             "code_filename": "main.py"
         },
         "javascript": {

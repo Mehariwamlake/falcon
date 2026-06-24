@@ -15,6 +15,7 @@ services:
 
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+      - /opt/falcon-workspace:/workspace
 
   python-runtime:
     image: fossunited/falcon-python:3.9
