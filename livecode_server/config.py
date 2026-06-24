@@ -12,12 +12,12 @@ DEFAULT_CONFIG = {
     "runtimes": {
         "python": {
             "image": "fossunited/falcon-python:3.9",
-            "command": ["python", "/app/main.py"],
+            "command": ["python", "main.py"],
             "code_filename": "main.py"
         },
         "javascript": {
             "image": "frappedevs/falcon-javascript:latest",
-            "command": ["node", "/app/main.js"],
+            "command": ["node", "main.js"],
             "code_filename": "main.js"
         },
         "rust": {
